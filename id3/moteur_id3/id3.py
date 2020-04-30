@@ -54,8 +54,17 @@ class ID3:
             l'attribut A une liste l_j contenant les données pour lesquelles A\
             vaut a_j.
         """
+        partitions = {}
 
-        print('à compléter')
+        for val in valeurs:
+            partitions[val] = []
+
+        for donnee in donnees:
+            
+            partition = partitions[donnee[1][attribut]]
+            partition.append(donnee)
+
+        return partitions
 
     def p_aj(self, donnees, attribut, valeur):
         """ p(a_j) - la probabilité que la valeur de l'attribut A soit a_j.
@@ -66,7 +75,16 @@ class ID3:
             :return: p(a_j)
         """
 
-        print('à compléter')
+        if len(donnees) == 0:
+            return 0.0
+            
+        nbr_occurences = 0
+
+        for donnee in donnees:
+            if donnee[1][attribut] == valeur :
+                nbr_occurences += 1
+        
+        return nbr_occurences/len(donnees)
 
     def p_ci_aj(self, donnees, attribut, valeur, classe):
         """ p(c_i|a_j) - la probabilité conditionnelle que la classe C soit c_i\
@@ -78,8 +96,22 @@ class ID3:
             :param classe: la valeur c_i de la classe C.
             :return: p(c_i | a_j)
         """
+        nbr_donnees_avec_aj = 0
+        nbr_donnees_avec_aj_ci = 0
 
-        print('à compléter')
+        for donnee in donnees:
+            if donnee[1][attribut] == valeur:
+                nbr_donnees_avec_aj += 1
+
+                if donnee[0] == classe:
+                    nbr_donnees_avec_aj_ci += 1
+        
+        if nbr_donnees_avec_aj_ci == 0:
+            return 0
+                
+        return nbr_donnees_avec_aj_ci/nbr_donnees_avec_aj    
+        
+
 
     def h_C_aj(self, donnees, attribut, valeur):
         """ H(C|a_j) - l'entropie de la classe parmi les données pour lesquelles\
@@ -90,8 +122,23 @@ class ID3:
             :param valeur: la valeur a_j de l'attribut A.
             :return: H(C|a_j)
         """
+        classes = []
+        for donnee in donnees:
+            if donnee[0] not in classes:
+                classes.append(donnee[0])
 
-        print('à compléter')
+        proba_ci_aj = []
+
+        for classe in classes:
+            proba_ci_aj.append(self.p_ci_aj(donnees, attribut, valeur, classe))
+
+        entropie = 0
+
+        for proba in proba_ci_aj:
+            if proba !=0:
+                entropie -= proba*log(proba,2.0)
+
+        return entropie
 
     def h_C_A(self, donnees, attribut, valeurs):
         """ H(C|A) - l'entropie de la classe après avoir choisi de partitionner\
@@ -102,5 +149,16 @@ class ID3:
             :param list valeurs: les valeurs a_j de l'attribut A.
             :return: H(C|A)
         """
+        proba_aj = []
+        entropie_c_aj = []
 
-        print('à compléter')
+        for val in valeurs:
+            proba_aj.append(self.p_aj(donnees, attribut, val))
+            entropie_c_aj.append(self.h_C_aj(donnees, attribut, val))
+        
+        somme = 0
+
+        for i in range(len(proba_aj)):
+            somme += proba_aj[i]*entropie_c_aj[i]
+
+        return somme
