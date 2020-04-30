@@ -41,8 +41,46 @@ class ID3:
             :return: une instance de NoeudDeDecision correspondant à la racine de\
             l'arbre de décision.
         """
-        
-        print('à compléter')
+        if len(donnees) == 0:
+            return None
+        elif self.dans_meme_classe(donnees):
+            return NoeudDeDecision(None, donnees, None)
+        else: 
+            
+            entropie_min = 1000
+            attribut_choisi = None
+
+            for attribut in attributs:
+                entropie = self.h_C_A(donnees,attribut,attributs[attribut])
+                if entropie < entropie_min:
+                    entropie_min = entropie
+                    attribut_choisi = attribut
+
+            attributs_sauf_A = attributs.copy()
+            del attributs_sauf_A[attribut_choisi]
+
+            partitions = self.partitionne(donnees, attribut_choisi, attributs[attribut_choisi])
+            enfants = {}
+            
+            for val,partition in partitions.items():
+                enfants[val] = self.construit_arbre_recur(partition, attributs_sauf_A)
+
+            return NoeudDeDecision(attribut_choisi, donnees, enfants)
+
+
+
+    def dans_meme_classe(self, donnees):
+        "retourne True si toutes les données sont de même classe"
+
+        if len(donnees) == 0:
+            return True
+
+        classe = donnees[0][0]
+
+        for donnee in donnees:
+            if donnee[0]!= classe:
+                return False
+        return True        
 
     def partitionne(self, donnees, attribut, valeurs):
         """ Partitionne les données sur les valeurs a_j de l'attribut A.
