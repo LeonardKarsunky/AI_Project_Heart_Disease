@@ -8,7 +8,7 @@ résultats = instance.get_results()
 
 print(résultats)
 
-donnees = instance.extract_data("data/train_bin.csv")
+#donnees = instance.extract_data("data/train_bin.csv")
 
 
 
