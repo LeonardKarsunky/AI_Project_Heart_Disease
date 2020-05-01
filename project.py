@@ -35,7 +35,8 @@ class ResultValues():
         for i in range(donnees_lues.index.stop):
         
             attributs_valeurs = list(donnees_lues.values[i])
-            classes.append(attributs_valeurs.pop(-1))
+            attributs_valeurs = [str(i) for i in attributs_valeurs]
+            classes.append(str(attributs_valeurs.pop(-1)))
             dico_attribut = dict(zip(attributs_noms, attributs_valeurs))
 
             donnees.append([classes[i], dico_attribut])
