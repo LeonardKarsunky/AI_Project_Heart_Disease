@@ -58,16 +58,22 @@ class NoeudDeDecision:
             rep += '---'*level
             rep += 'Alors {}\n'.format(self.classe().upper())
             rep += '---'*level
+            rep += '\n PROFONDEUR = '
+            rep += str(level) 
+            rep += '\n'
+            """
             rep += 'Décision basée sur les données:\n'
             for donnee in self.donnees:
                 rep += '---'*level
                 rep += str(donnee) + '\n' 
+            """
 
         else:
             for valeur, enfant in self.enfants.items():
                 rep += '---'*level
                 rep += 'Si {} = {}: \n'.format(self.attribut, valeur.upper())
-                rep += enfant.repr_arbre(level+1)
+                if enfant != None:
+                    rep += enfant.repr_arbre(level+1)
 
         return rep
 
