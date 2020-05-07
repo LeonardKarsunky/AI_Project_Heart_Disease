@@ -32,7 +32,7 @@ class ResultValues():
         classes = []
         donnees = []
 
-        for i in range(donnees_lues.index.stop):
+        for i in range(len(donnees_lues)):
         
             attributs_valeurs = list(donnees_lues.values[i])
             attributs_valeurs = [str(i) for i in attributs_valeurs]
@@ -40,8 +40,19 @@ class ResultValues():
             dico_attribut = dict(zip(attributs_noms, attributs_valeurs))
 
             donnees.append([classes[i], dico_attribut])
-
+        
         return donnees
+    
+    def model_eval(self, nom_fichier):
+        donnees = self.extract_data(nom_fichier)
+        if len(donnees) == 0:
+            return 0
+        classification = 0
 
+        for donnee in donnees:
+            classe_model = self.arbre.classifie(donnee[1])
+            classe_model = classe_model[-1]
+            if classe_model == donnee[0]:
+                classification+=1
 
-
+        return 100*(classification/len(donnees))
