@@ -5,32 +5,21 @@ from project import ResultValues
 
 instance = ResultValues("data/train_bin.csv")
 résultats = instance.get_results()
+#print(résultats)
 
-print(résultats)
+"PARTIE 1: permet d'obtenir quelques statistiques concernant l'arbre"
+#print(instance.tree_analysis())
 
-#donnees = instance.extract_data("data/train_bin.csv")
-
-
-
-
+"PARTIE 2 : permet d'obtenir une évaluation des capacités de l'arbre"
+instance.model_eval("data/test_public_bin.csv")
 
 
 """
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.tree import plot_tree
-
-#import matplotlib.pyplot as plt
-#import sklearn
-
-X = []
-Y = []
-
-for donnee in donnees:
-    Y.append(donnee[0])
-    X.append
-
-
-classifier = DecisionTreeClassifier("entropy")
-classifier = classifier.fit()
+BONUS:
+Décommenter la ligne suivante pour générer les représentations graphiques (sauvées dans le dossier output) et 
+compléter par le lancement des deux commandes suivantes dans le terminal depuis le dossier Projet:
+dot output/arbre.dot -T png -o output/arbre.png 
+dot output/graphe.dot -T png -o output/graphe.png
 """
-    
+
+#instance.visual_tree()
