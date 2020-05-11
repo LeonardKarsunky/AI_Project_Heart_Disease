@@ -24,8 +24,11 @@ class NoeudDeDecision:
         self.p_class = p_class
         #utilisé pour la méthode tree_analysis
         self.depth = 0
-        #utilisé pour la méthode visual_tree de Results_values
-        self.nom = None
+        #utilisés pour la méthode visual_tree de Results_values
+        self.nom = None             #contient un string de forme : attributPère_valeur___nombreUnique
+        self.texte = None           #contient un string de forme : attributPère = valeur
+        self.parent = None          #contient le noeudDeDecision parent
+        self.risques = None         #contient un string valant "Risques faibles" si la classe est 0 et "Risques élevés" si la classe est 1
 
     def terminal(self):
         """ Vérifie si le noeud courant est terminal. """
@@ -81,6 +84,8 @@ class NoeudDeDecision:
         noeuds_à_explorer = []
         #Nombe de noeuds terminaux
         nbr_noeuds_terminaux = 0
+        #Nombres de noeuds totaux:
+        nbr_noeuds = 1
 
         #Si le noeud racine n'a pas d'enfants, on ne peut pas réaliser d'analyses
         if self.enfants == None:
@@ -99,6 +104,7 @@ class NoeudDeDecision:
         while noeuds_à_explorer:
             noeud_courant = noeuds_à_explorer.pop(-1)
             niveaux.append(noeud_courant.depth)
+            nbr_noeuds += 1
 
             if noeud_courant.enfants != None:
                 nbr_enfants.append(len(noeud_courant.enfants))
@@ -113,7 +119,8 @@ class NoeudDeDecision:
         réponse = "La profondeur maximale de l'arbre est : " + str(max(niveaux)) + '\n'
         réponse += "La profondeur moyenne de l'arbre est : " + str(statistics.mean(niveaux)) + '\n'
         réponse += "Le nombre moyen d'enfants tout noeud confondu (sauf noeud terminaux) de l'arbre est : " + str(statistics.mean(nbr_enfants)) + '\n'
-        réponse += "Le nombre de noeuds terminaux ou feuilles de cet arbre est : " + str(nbr_noeuds_terminaux)
+        réponse += "Le nombre de noeuds terminaux ou feuilles de cet arbre est : " + str(nbr_noeuds_terminaux) + '\n'
+        réponse += "Le nombre de noeuds totaux est : " + str(nbr_noeuds)
         return réponse    
 
     def repr_arbre(self, level=0):

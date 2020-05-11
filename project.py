@@ -1,5 +1,8 @@
 from id3.moteur_id3.noeud_de_decision import NoeudDeDecision
 from id3.moteur_id3.id3 import ID3
+from id3.moteur_id3.noeud_de_decision_continu import NoeudDeDecision_continu
+from id3.moteur_id3.id3_continu import ID3_continu
+
 import pandas
 
 from anytree import Node, RenderTree
@@ -9,12 +12,14 @@ from anytree.dotexport import RenderTreeGraph
 
 class ResultValues():
 
-    def __init__(self, nom_fichier):
+    def __init__(self):
         
         # Do computations here
 
-        donnees = self.extract_data(nom_fichier)
+        donnees = self.extract_data("data/train_bin.csv")
+        self.donnees_continues = self.extract_data("data/train_continuous.csv")
         algo_id3 = ID3()
+        algo_id3_continu = ID3_continu()
         
         # Task 1
         self.arbre = algo_id3.construit_arbre(donnees)
@@ -23,6 +28,7 @@ class ResultValues():
         self.regles = None
         # Task 5
         self.arbre_advance = None
+        #algo_id3_continu.construit_arbre(self.donnees_continues)
 
     def get_results(self):
         return [self.arbre, self.faits_initiaux, self.regles, self.arbre_advance]
@@ -92,6 +98,40 @@ class ResultValues():
 
         print("Le modèle classifie correctement " + str(100*(classification/len(donnees))) + " pourcents des exemples.")
 
+    def attributs_initialize(self):
+        """Parcourt l'arbre dont self.arbre est la racine et initialise les attributs parent, nom, texte et risques
+           (seulement pour les noeuds terminaux) de chaque noeud, cette étape est utile pour la méthode visual_tree
+        """
+        if self.arbre.enfants == None:
+            return "Erreur"
+
+        noeuds_à_explorer = [self.arbre]
+        self.arbre.nom = "Racine"
+        self.arbre.texte = "Racine"
+
+        #permet de s'assurer de l'unicité de chaque nom
+        i = 0
+
+        while noeuds_à_explorer:
+            noeud_courant = noeuds_à_explorer.pop(-1)
+
+            if not(noeud_courant.terminal()):
+                for valeur, enfant in noeud_courant.enfants.items():
+                    noeuds_à_explorer.append(enfant)
+                    enfant.parent = noeud_courant   
+                    enfant.nom = noeud_courant.attribut + "_" + valeur + "___" + str(i)  
+                    enfant.texte = noeud_courant.attribut + " = " + valeur
+                    i+=1
+            elif noeud_courant.terminal(): 
+                if noeud_courant.classe() == "0":
+                    noeud_courant.risques = "Risques faibles"
+
+                elif noeud_courant.classe() == "1":
+                    noeud_courant.risques = "Risques élevés"
+                i+=1
+
+    
+    
     def visual_tree(self, noeud_racine = None): 
 
         """
@@ -108,71 +148,69 @@ class ResultValues():
         dot output/graphe.dot -T png -o output/graphe.png
         """
 
-        #Génération du graphique possible seulement si le noeud racine possède des enfants
-        if self.arbre.enfants == None:
-            return "Erreur"
+        #Permet d'initialiser l'attribut "parent" et "nom" de chaque noeud sauf la racine
+        self.attributs_initialize()
 
-        #inclut les noeuds à explorer en commençant par la racine
-        if noeud_racine == None:
-            a_explorer = [self.arbre]
+        #Noeuds à explorer
+        a_explorer = []
+
+        #inclut les noeuds à explorer en commençant par la racine ou par le noeud de départ spécifié
+        if noeud_racine == None or noeud_racine.nom == "Racine":
+            #Dans le cas du noeud racine comme point de départ, on le traite à part et on commence au niveau des enfants (parce que le noeud racine n'a pas de noeud parent)
+            for valeur, enfant in self.arbre.enfants.items():
+                if not enfant.terminal():
+                    a_explorer.append(enfant)
         else:
             a_explorer = [noeud_racine]
-        
+
+        #Génération du graphique possible seulement si le noeud de départ spécifié possède des enfants
+        if a_explorer[0].enfants == None:
+            return "Erreur"
+                
         #Contient des tuples (nom_noeud, texte_à_afficher, nom_parent), chaque élément sous forme de string
         noeuds = []
         #Contient des tuples (nom_noeud, texte_spécifiant_classe, nom_parent), chaque élément sous forme de string
         noeuds_terminaux = []
 
+        #Besoin de générer des noms uniques pour les feuilles
         i = 0
+
         #PARCOURS DE l'ARBRE ET GENERATION DES NOEUDS POUR ANYTREE
         
         while a_explorer:
-            #On traite les noeuds pas encore explorés (DFS)
-            papa = a_explorer.pop(0)
-
-            #Traitement spécial au premier tour de la boucle à cause de la racine
-            if noeud_racine == None:
-                nom_papa  = "racine"
-                noeud_racine = 1
-                    
-            else:
-                nom_papa = papa.nom          
+            #On traite les noeuds pas encore explorés selon un algorithme DFS
+            noeud_courant = a_explorer.pop(0)
+            noeuds.append((noeud_courant.nom, noeud_courant.texte, noeud_courant.parent.nom))     
             
-            for valeur, enfant in papa.enfants.items():
-                
-                nom_enfant = papa.attribut + "_" + str(valeur)
-                texte_enfant = papa.attribut + " = " + str(valeur)
-                noeuds.append((nom_enfant, texte_enfant, nom_papa))
-                enfant.nom = nom_enfant
-
+            for valeur, enfant in noeud_courant.enfants.items():
+            
                 if not(enfant.terminal()):
                     a_explorer.append(enfant)
+
                 elif enfant.terminal():
-                    #Traitement des noeuds terminaux
-                    nom_noeud = "noeud"+ str(i)
-                    risques = ""
-
-                    if enfant.classe() == "0":
-                        risques += "Risques faibles"
-                    elif enfant.classe() == "1":
-                        risques += "Risques élevés"
-                    noeuds_terminaux.append((nom_noeud, risques, nom_enfant))
-
-                    i+=1 
-
+                    noeuds.append((enfant.nom, enfant.texte, enfant.parent.nom))
+                    nom_feuille = "noeud" + str(i)
+                    noeuds_terminaux.append((nom_feuille, enfant.risques, enfant.nom))
+                    i+=1
+            
         # GENERATION DES NOEUDS POUR ANYTREE
-        racine = Node("Racine")
+        Racine = Node("Racine")
+        nbr_noeuds_générés = 1
 
         for tup in noeuds:
             exec(tup[0] + " = Node(" + '"' + tup[1] + '"' + ", parent = " + tup[2] +")")
+            nbr_noeuds_générés += 1
         for tup in noeuds_terminaux:
-            exec(tup[0] + " = Node(" + '"' + tup[1] + '"'+ ", parent = " + tup[2] +")")
+            exec(tup[0] + " = Node(" + '"' + str(tup[1]) + '"'+ ", parent = " + tup[2] +")")
+            nbr_noeuds_générés += 1
+        
+        print("Nombre de noeuds générés = " + str(nbr_noeuds_générés))
 
         #GENERATION DU GRAPHIQUE PAR GRAPHVIZ ET ANYTREE
-        print(RenderTree(racine, style=ContRoundStyle()))
+        print(RenderTree(Racine, style=ContRoundStyle()))
 
-        RenderTreeGraph(racine).to_dotfile("output/graphe.dot")
-        UniqueDotExporter(racine).to_dotfile("output/arbre.dot")
+        RenderTreeGraph(Racine).to_dotfile("output/graphe.dot")
+        UniqueDotExporter(Racine).to_dotfile("output/arbre.dot")
         
         
         
