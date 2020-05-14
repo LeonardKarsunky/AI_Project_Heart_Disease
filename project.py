@@ -1,6 +1,4 @@
-from id3.moteur_id3.noeud_de_decision import NoeudDeDecision
 from id3.moteur_id3.id3 import ID3
-from id3.moteur_id3.noeud_de_decision_continu import NoeudDeDecision_continu
 from id3.moteur_id3.id3_continu import ID3_continu
 
 import pandas
@@ -17,7 +15,8 @@ class ResultValues():
         # Do computations here
 
         donnees = self.extract_data("data/train_bin.csv")
-        self.donnees_continues = self.extract_data("data/train_continuous.csv")
+        donnees_continues = self.extract_data("data/train_continuous.csv")
+
         algo_id3 = ID3()
         algo_id3_continu = ID3_continu()
         
@@ -27,13 +26,12 @@ class ResultValues():
         self.faits_initiaux = None
         self.regles = None
         # Task 5
-        self.arbre_advance = None
-        #algo_id3_continu.construit_arbre(self.donnees_continues)
+        self.arbre_advance = algo_id3_continu.construit_arbre(donnees_continues)
 
     def get_results(self):
         return [self.arbre, self.faits_initiaux, self.regles, self.arbre_advance]
     
-#Méthodes rajoutées par nous : 
+#METHODES QUE L'ON A AJOUTEES : 
 
     def extract_data(self, data_file):
 
@@ -78,25 +76,31 @@ class ResultValues():
         else:
             return arbre.tree_analysis()
     
-    def model_eval(self, nom_fichier):
+    def model_eval(self, nom_fichier, continu = False):
 
         """
         Cette méthode permet d'évaluer le pourcentage de classifications correctes d'un arbre déjà construit
-        à l'aide d'un second set de données dont le nom est passé en paramètre
+        à l'aide d'un second set de données dont le nom est passé en paramètre, par défaut analyse ID3 classique
+        mais si le paramètre continu vaut False, analyse arbre_advance à la place
         """
-
         donnees = self.extract_data(nom_fichier)
         if len(donnees) == 0:
-            return 0
-        classification = 0
+            print("Erreur, le fichier de test est vide")
+
+        classifications_correctes = 0
 
         for donnee in donnees:
-            classe_model = self.arbre.classifie(donnee[1])
-            classe_model = classe_model[-1]
+            if continu:
+                classe_model = self.arbre_advance.classifie(donnee[1])
+                classe_model = str(float(classe_model[-1]))
+            else:
+                classe_model = self.arbre.classifie(donnee[1])
+                classe_model = str(float(classe_model[-1]))
+                                
             if classe_model == donnee[0]:
-                classification+=1
+                classifications_correctes+=1
 
-        print("Le modèle classifie correctement " + str(100*(classification/len(donnees))) + " pourcents des exemples.")
+        print("Le modèle classifie correctement " + str(100*(classifications_correctes/len(donnees))) + " pourcents des exemples.")
 
     def attributs_initialize(self):
         """Parcourt l'arbre dont self.arbre est la racine et initialise les attributs parent, nom, texte et risques
@@ -129,8 +133,6 @@ class ResultValues():
                 elif noeud_courant.classe() == "1":
                     noeud_courant.risques = "Risques élevés"
                 i+=1
-
-    
     
     def visual_tree(self, noeud_racine = None): 
 
@@ -157,7 +159,7 @@ class ResultValues():
         #inclut les noeuds à explorer en commençant par la racine ou par le noeud de départ spécifié
         if noeud_racine == None or noeud_racine.nom == "Racine":
             #Dans le cas du noeud racine comme point de départ, on le traite à part et on commence au niveau des enfants (parce que le noeud racine n'a pas de noeud parent)
-            for valeur, enfant in self.arbre.enfants.items():
+            for enfant in self.arbre.enfants.values():
                 if not enfant.terminal():
                     a_explorer.append(enfant)
         else:
@@ -182,7 +184,7 @@ class ResultValues():
             noeud_courant = a_explorer.pop(0)
             noeuds.append((noeud_courant.nom, noeud_courant.texte, noeud_courant.parent.nom))     
             
-            for valeur, enfant in noeud_courant.enfants.items():
+            for enfant in noeud_courant.enfants.values():
             
                 if not(enfant.terminal()):
                     a_explorer.append(enfant)

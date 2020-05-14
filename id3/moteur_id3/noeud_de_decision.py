@@ -32,9 +32,8 @@ class NoeudDeDecision:
 
     def terminal(self):
         """ Vérifie si le noeud courant est terminal. """
-
-        return self.enfants is None
-
+        if self.enfants == None:
+            return True
     def classe(self):
         """ Si le noeud est terminal, retourne la classe des données qui\
             tombent dans la sous-classification (dans ce cas, toutes les\
@@ -89,10 +88,10 @@ class NoeudDeDecision:
 
         #Si le noeud racine n'a pas d'enfants, on ne peut pas réaliser d'analyses
         if self.enfants == None:
-            return "Erreur"
+            return "Erreur le noeud racine spécifié n'a pas d'enfants"
 
         #ajoute les enfants du noeud racine aux noeuds à explorer
-        for valeur, enfant in self.enfants.items():
+        for enfant in self.enfants.values():
             noeuds_à_explorer.append(enfant)
             enfant.depth = 1
             niveaux.append(1)
@@ -110,7 +109,7 @@ class NoeudDeDecision:
                 nbr_enfants.append(len(noeud_courant.enfants))
 
                 #Si le noeud courant a des enfants, on les rajoute aux noeuds à explorer et on initialise la profondeur de chaque noeud
-                for valeur, enfant in noeud_courant.enfants.items():
+                for enfant in noeud_courant.enfants.values():
                     noeuds_à_explorer.append(enfant)
                     enfant.depth = 1 + noeud_courant.depth
             else:
