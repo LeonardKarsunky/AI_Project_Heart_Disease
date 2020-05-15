@@ -23,8 +23,8 @@ class ResultValues():
         # Task 1
         self.arbre = algo_id3.construit_arbre(donnees)
         # Task 3
-        self.faits_initiaux = None
-        self.regles = None
+        self.faits_initiaux = None     #Initialisé par la fonction faits_initialize() qui demande un nom de fichier en paramètre ainsi que l'index de l'exemple que l'on aimerait classifier
+        self.regles = self.regles_recherche()
         # Task 5
         self.arbre_advance = algo_id3_continu.construit_arbre(donnees_continues)
 
@@ -102,6 +102,79 @@ class ResultValues():
 
         print("Le modèle classifie correctement " + str(100*(classifications_correctes/len(donnees))) + " pourcents des exemples.")
 
+    def regles_recherche(self):
+
+        self.attributs_initialize()
+
+        #liste des neours pas encore explorés
+        noeuds_à_explorer = [self.arbre]
+
+        #Règle modifiée dynamiquement pour chaquement (liste de strings)
+        règle = []
+
+        #Règles finales (liste de liste de strings)
+        règles_finales = []
+
+        while noeuds_à_explorer:
+
+            noeud_courant = noeuds_à_explorer.pop(-1)
+
+            #On a atteint un noeud terminal et on remonte dans l'arbre, règle est mise à jour
+            if len(règle) > noeud_courant.depth:
+                nbr_de_strings_à_enlever = len(règle) - (noeud_courant.depth) 
+
+                for i in range(nbr_de_strings_à_enlever):
+                    del règle[-1]
+
+            règle.append(noeud_courant.texte)
+
+            if noeud_courant.terminal():
+                règle_à_ajouter = règle[1:]
+                règle_à_ajouter.append(noeud_courant.classe()) 
+                règles_finales.append(règle_à_ajouter)
+            
+            else:
+                for enfant in noeud_courant.enfants.values():
+                    noeuds_à_explorer.append(enfant)
+                    enfant.depth = noeud_courant.depth + 1
+
+        return règles_finales
+
+    def classification_regles(self, donnee = 0):
+
+        if donnee == 0:
+            donnee = self.faits_initiaux
+
+        for regle in self.regles:
+            faits_partagés = 0
+
+            for fait in regle:
+                if fait in donnee:
+                    faits_partagés += 1
+            
+            if faits_partagés == len(regle) - 1 :
+                rep = "La donnée est dans la classe : " + regle[-1] + '\n'
+                regle = regle[:-1]
+                for fait in regle:
+                    rep += " Parce que " + fait + '\n'
+            else:
+                rep = "Pas de classification trouvée"
+            
+            return rep
+            
+    def faits_initialize(self, nom_fichier, indice_exemple):
+        
+        donnees = self.extract_data(nom_fichier)
+        donnee = donnees[indice_exemple][1]
+
+        faits_initiaux = []
+
+        for attribut, valeur in donnee.items():
+            texte = attribut + " = " + valeur
+            faits_initiaux.append(texte)
+
+        return faits_initiaux 
+        
     def attributs_initialize(self):
         """Parcourt l'arbre dont self.arbre est la racine et initialise les attributs parent, nom, texte et risques
            (seulement pour les noeuds terminaux) de chaque noeud, cette étape est utile pour la méthode visual_tree

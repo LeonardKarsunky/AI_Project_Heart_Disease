@@ -15,24 +15,21 @@ instance = ResultValues()
 #instance.model_eval("data/test_public_bin.csv")
 
 "PARTIE 3 :"
+#print(instance.regles)
+
+indice = 60
+
+donnee = instance.faits_initialize("data/test_public_bin.csv", indice)
+print(instance.classification_regles(donnee))
 
 "PARTIE 4 :"
 
 
 "PARTIE 5 :"
-print(instance.arbre_advance)
-print(instance.arbre_advance.tree_analysis())
+#print(instance.arbre_advance)
+#print(instance.arbre_advance.tree_analysis())
 
-print(instance.model_eval("data/test_public_continuous.csv", True))
-
-
-
-
-
-
-
-
-
+#print(instance.model_eval("data/test_public_continuous.csv", True))
 
 
 
@@ -43,4 +40,4 @@ compléter par le lancement des deux commandes suivantes dans le terminal depuis
 dot output/arbre.dot -T png -o output/arbre.png 
 dot output/graphe.dot -T png -o output/graphe.png
 """
-#instance.visual_tree()
+instance.visual_tree()
