@@ -1,8 +1,8 @@
+#Utile pour toutes les parties
 from id3.moteur_id3.id3 import ID3
 from id3.moteur_id3.id3_continu import ID3_continu
-
 import pandas
-
+#Utile pour le bonus seulement
 from anytree import Node, RenderTree
 from anytree.exporter import UniqueDotExporter
 from anytree.render import ContRoundStyle
@@ -12,18 +12,23 @@ class ResultValues():
 
     def __init__(self):
         
-        # Do computations here
-
+        # Importations des données pour les deux versions d'ID3
         donnees = self.extract_data("data/train_bin.csv")
         donnees_continues = self.extract_data("data/train_continuous.csv")
 
+        # Création d'un instance pour les deux versions d'ID3
         algo_id3 = ID3()
         algo_id3_continu = ID3_continu()
         
         # Task 1
         self.arbre = algo_id3.construit_arbre(donnees)
         # Task 3
-        self.faits_initiaux = None     #Initialisé par la fonction faits_initialize() qui demande un nom de fichier en paramètre ainsi que l'index de l'exemple que l'on aimerait classifier
+        """ ATTENTION
+        self.faits_intiaux est initialisé par la fonction faits_initialize() qui demande 
+        un nom de fichier en paramètre ainsi que l'index de l'exemple que l'on aimerait classifier
+        OU une donnée directement
+        """
+        self.faits_initiaux = None    
         self.regles = self.regles_recherche()
         # Task 5
         self.arbre_advance = algo_id3_continu.construit_arbre(donnees_continues)
@@ -31,24 +36,31 @@ class ResultValues():
     def get_results(self):
         return [self.arbre, self.faits_initiaux, self.regles, self.arbre_advance]
     
-#METHODES QUE L'ON A AJOUTEES : 
+#METHODES AJOUTEES : 
 
     def extract_data(self, data_file):
 
-        """Cette méthode permet l'importation d'un fichier de données dont le nom et chemin est passé en paramètre
-           et la mise en forme de ces exemples dans la structure de données "données" utilisée dans le reste du projet
-           Utilisation de la librairie pandas     
+        """
+        Cette méthode permet d'importer un fichier de données et de transformer et retourner son contenu 
+        pour le rendre compatible avec l'algorithme d'ID3, c'est à dire sous la forme d'une structure 
+        de données de forme suivante (chaque élément est stocké sous la forme de strings): 
+        donnée := [classe, {attribut1:valeur1, ...}]
+
+        Utilisation de la librairie pandas      
         """
 
+        #Les données importées par la librairie pandas sont rassemblées dans une structure de données propre à la librairie appelée DataFrame
         donnees_lues = pandas.read_csv(data_file)
 
         #Récupération des noms des attributs
         attributs_noms = donnees_lues.columns.values.tolist()
+        #En ignorant la dernière colonne qui correspond à la classe
         attributs_noms.remove('target')
 
         classes = []
         donnees = []
 
+        #On parcourt les données 
         for i in range(len(donnees_lues)):
             
             #Récupération des valeurs des attributs
@@ -65,10 +77,11 @@ class ResultValues():
     def tree_analysis(self, arbre = None):
 
         """
-        Fait appel à la méthode tree_analysis de la classe noeud de décision afin de ne parcourir l'arbre
-        qu'une seule fois pour réaliser toutes les analyses (profondeur, profondeur moyenne, nombre d'enfants moyen)
-        Par défaut l'arbre analysé est l'arbre commençant au niveau du noeud racine, mais il reste possible de fournir 
-        un autre noeud de départ en paramètre
+        Fait appel à la méthode tree_analysis de la classe noeud de décision afin de réaliser une analyse complète de
+        l'arbre passé stocké dans self.arbre (par défaut) ou d'un autre arbre que l'on passe en paramètre (noeud racine)
+        On ne parcourt l'arbre qu'une seule fois pour réaliser toutes les analyses (profondeur max, profondeur moyenne, 
+        nombre d'enfants moyen, nombre de noeuds terminaux et nombre de noeuds total)
+        Retourne un string contenant le résultat de l'analyse
         """
 
         if arbre == None:
@@ -76,108 +89,145 @@ class ResultValues():
         else:
             return arbre.tree_analysis()
     
-    def model_eval(self, nom_fichier, continu = False):
+    def model_eval(self, nom_fichier, advance = False):
 
         """
         Cette méthode permet d'évaluer le pourcentage de classifications correctes d'un arbre déjà construit
-        à l'aide d'un second set de données dont le nom est passé en paramètre, par défaut analyse ID3 classique
-        mais si le paramètre continu vaut False, analyse arbre_advance à la place
+        à l'aide d'un set de données de test dont le nom du fichier est passé en paramètre. Par défaut, la méthode 
+        analyse les performances de l'algorithme ID3 classique mais si le paramètre appelé advance vaut True,
+        la méthode analyse arbre_advance à la place.
+        Retourne un string contenant le résultat de l'analyse des performances.
         """
+
+        #Extraction des données du set de test
         donnees = self.extract_data(nom_fichier)
+
+        #Erreur si le fichier est vide ou incompatble avec notre méthode extract_data
         if len(donnees) == 0:
             print("Erreur, le fichier de test est vide")
 
+        #Compteur des classifications correctes
         classifications_correctes = 0
 
+        #On parcourt les données du set de test
         for donnee in donnees:
-            if continu:
+            #On traite soit self.arbre soit self.arbre_advance selon la valeur du paramètre "advance"
+            if advance:
                 classe_model = self.arbre_advance.classifie(donnee[1])
                 classe_model = str(float(classe_model[-1]))
             else:
                 classe_model = self.arbre.classifie(donnee[1])
                 classe_model = str(float(classe_model[-1]))
-                                
-            if classe_model == donnee[0]:
+
+            #On incrémente sur le compteur lorsqu'une classification est correcte          
+            if classe_model == str(float(donnee[0])):
                 classifications_correctes+=1
 
-        print("Le modèle classifie correctement " + str(100*(classifications_correctes/len(donnees))) + " pourcents des exemples.")
+        rep = ("Le modèle classifie correctement " + str(100*(classifications_correctes/len(donnees))) + " pourcents des exemples.")
+        return rep
 
     def regles_recherche(self):
+        """
+        Cette méthode permet de générer une liste de règles sous la forme d'une liste de listes de strings
+        à partir d'un arbre de décision déjà créé et stocké dans self.arbre. Retourne la liste de règles
+        """
 
         self.attributs_initialize()
 
-        #liste des neours pas encore explorés
+        #liste des noeuds pas encore explorés
         noeuds_à_explorer = [self.arbre]
 
-        #Règle modifiée dynamiquement pour chaquement (liste de strings)
+        #Règle modifiée dynamiquement pendant le parcours de l'arbre (liste de strings)
         règle = []
 
-        #Règles finales (liste de liste de strings)
+        #Règles finales (liste de listes de strings)
         règles_finales = []
 
+        #Tant qu'on a pas exploré tout l'arbre
         while noeuds_à_explorer:
 
+            #On explore selon le DFS (last in first out)
             noeud_courant = noeuds_à_explorer.pop(-1)
 
-            #On a atteint un noeud terminal et on remonte dans l'arbre, règle est mise à jour
+            #On à atteint un noeud terminal au tour de boucle précédant et on a remonté dans l'arbre. La règle est mise à jour.
             if len(règle) > noeud_courant.depth:
                 nbr_de_strings_à_enlever = len(règle) - (noeud_courant.depth) 
 
-                for i in range(nbr_de_strings_à_enlever):
+                #On ôte de règle les strings dont on a plus besoins (la fin de la règle) mais on conserve ceux qui sont encore utiles (le début de la règle)
+                for _ in range(nbr_de_strings_à_enlever):
                     del règle[-1]
 
+            #On ajoute le string du noeud courant à la règle
             règle.append(noeud_courant.texte)
 
+            #Si le noeud est terminal, on ajoute la règle à la liste de règles finales, en ajoutant la conclusion de la règle
             if noeud_courant.terminal():
                 règle_à_ajouter = règle[1:]
                 règle_à_ajouter.append(noeud_courant.classe()) 
                 règles_finales.append(règle_à_ajouter)
             
             else:
+                #Si le noeud n'est pas terminal, on traite les enfants
                 for enfant in noeud_courant.enfants.values():
                     noeuds_à_explorer.append(enfant)
                     enfant.depth = noeud_courant.depth + 1
 
         return règles_finales
 
-    def classification_regles(self, donnee = 0):
+    def classification_regles(self):
+        """
+        Permet de classifier l'exemple dont la donnée est stockée dans l'attribut self.faits_initiaux à l'aide
+        des règles générées à partir de l'arbre et stockées dans l'attributs self.regles
+        ATTENTION : nécessite l'appel préalable de la méthode faits_initialize
+        """
+        if self.faits_initiaux == None:
+            rep = "S'il vous plaît, veuillez initialiser l'attribut faits_initiaux grâce à la méthode faits_initialize"
+            return rep
 
-        if donnee == 0:
-            donnee = self.faits_initiaux
+        donnee = []
 
+        #La donnée est transformée sous la forme d'une liste de strings afin de faciliter la comparaison avec les conditions de la règle
+        for attribut, valeur in self.faits_initiaux.items():
+            donnee.append(str(attribut + " = " + valeur))
+
+        #on compare pour chaque règle le nombre de faits partagés entre la règle et la donnée...
         for regle in self.regles:
             faits_partagés = 0
 
             for fait in regle:
                 if fait in donnee:
                     faits_partagés += 1
-            
+
+            #Si le nombre de faits partagés est égal au nombre de conditions de la règle (sauf la conclusion, d'où le -1), la règle permet de classifier l'exemple
             if faits_partagés == len(regle) - 1 :
-                rep = "La donnée est dans la classe : " + regle[-1] + '\n'
+                rep = "La donnée : " + '\n' + str(donnee) + '\n' + " est dans la classe : " + regle[-1] + '\n'
                 regle = regle[:-1]
                 for fait in regle:
                     rep += " Parce que " + fait + '\n'
-            else:
-                rep = "Pas de classification trouvée"
+                return rep
             
-            return rep
+        #Si aucune règle ne permet de classifier exactement l'exemple, on utilise la méthode classifie de NoeudDeDecision
+        rep = "Pas de classification trouvée grâce aux règles"
+        return rep
             
-    def faits_initialize(self, nom_fichier, indice_exemple):
-        
-        donnees = self.extract_data(nom_fichier)
-        donnee = donnees[indice_exemple][1]
+    def faits_initialize(self, nom_fichier = None, indice_exemple = None, donnee = None):
+        """
+        Permet d'initialiser self.faits_initiaux avec une donnée directement (dictionnaire attribut:valeur) ou
+        en spécifiant un fichier externe contenant des données et l'indice de l'exemple d'intérêt 
+        """
 
-        faits_initiaux = []
-
-        for attribut, valeur in donnee.items():
-            texte = attribut + " = " + valeur
-            faits_initiaux.append(texte)
-
-        return faits_initiaux 
+        if donnee == None and nom_fichier != None and indice_exemple != None:
+            donnees = self.extract_data(nom_fichier)
+            self.faits_initiaux = donnees[indice_exemple][1]
+        elif nom_fichier == None and indice_exemple == None and donnee != None:
+            self.faits_initiaux =  donnee
+        else:
+            print("Erreur: vous avez incorrectement utilisé la méthode")         
         
     def attributs_initialize(self):
-        """Parcourt l'arbre dont self.arbre est la racine et initialise les attributs parent, nom, texte et risques
-           (seulement pour les noeuds terminaux) de chaque noeud, cette étape est utile pour la méthode visual_tree
+        """Parcourt l'arbre dont self.arbre est la racine et initialise les attributs parent, nom et texte 
+           de chaque noeud et l'attribut risques en plus pour les noeuds terminaux, cette étape est utile pour la méthode visual_tree
+           et pour la méthode regle_recherche qui bénéficie de l'attribut texte
         """
         if self.arbre.enfants == None:
             return "Erreur"
@@ -186,7 +236,7 @@ class ResultValues():
         self.arbre.nom = "Racine"
         self.arbre.texte = "Racine"
 
-        #permet de s'assurer de l'unicité de chaque nom
+        #permet de s'assurer de l'unicité de chaque nom stocké dans l'attribut nom de chaque Noeud (important car chaque nom sera utilisé plus tard comme nom de variable)
         i = 0
 
         while noeuds_à_explorer:
