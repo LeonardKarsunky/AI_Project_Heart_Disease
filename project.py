@@ -89,7 +89,7 @@ class ResultValues():
         else:
             return arbre.tree_analysis()
     
-    def model_eval(self, nom_fichier, advance = False):
+    def model_eval(self, nom_fichier = None, advance = False, donnees = None, rep_print = None):
 
         """
         Cette méthode permet d'évaluer le pourcentage de classifications correctes d'un arbre déjà construit
@@ -98,9 +98,12 @@ class ResultValues():
         la méthode analyse arbre_advance à la place.
         Retourne un string contenant le résultat de l'analyse des performances.
         """
-
-        #Extraction des données du set de test
-        donnees = self.extract_data(nom_fichier)
+        if nom_fichier != None:
+            #Extraction des données du set de test
+            donnees = self.extract_data(nom_fichier)
+        else:
+            #utile pour la fonction de cross-validation dans test_id3.py
+            donnees = donnees
 
         #Erreur si le fichier est vide ou incompatble avec notre méthode extract_data
         if len(donnees) == 0:
@@ -122,9 +125,13 @@ class ResultValues():
             #On incrémente sur le compteur lorsqu'une classification est correcte          
             if classe_model == str(float(donnee[0])):
                 classifications_correctes+=1
-
-        rep = ("Le modèle classifie correctement " + str(100*(classifications_correctes/len(donnees))) + " pourcents des exemples.")
-        return rep
+        
+        pourcentage = 100*(classifications_correctes/len(donnees))
+        if rep_print == None:
+            rep = "Le modèle classifie correctement " + str(pourcentage) + " pourcents des exemples."
+            return rep
+        elif rep_print == False:
+            return pourcentage
 
     def regles_recherche(self):
         """
@@ -336,6 +343,17 @@ class ResultValues():
 
         RenderTreeGraph(Racine).to_dotfile("output/graphe.dot")
         UniqueDotExporter(Racine).to_dotfile("output/arbre.dot")
+
+    def tree_setter(self, arbre, advance):
+        """
+        Setter utile pour la fonction de cross-validation (bonus) implémentée dans test_id3.py
+        Nécessaire pour permettre l'utilisation de model_eval sur différents arbres
+        """
+
+        if advance:
+            self.arbre_advance = arbre
+        else:
+            self.arbre = arbre
         
         
         
