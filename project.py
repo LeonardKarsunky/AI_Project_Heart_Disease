@@ -1,8 +1,8 @@
-#Utile pour toutes les parties
+#Utile pour toutes les parties 1 à 5
 from id3.moteur_id3.id3 import ID3
 from id3.moteur_id3.id3_continu import ID3_continu
 import pandas
-#Utile pour le bonus seulement
+#Utile pour le bonus 1 : visualisation de l'arbre
 from anytree import Node, RenderTree
 from anytree.exporter import UniqueDotExporter
 from anytree.render import ContRoundStyle
@@ -26,7 +26,7 @@ class ResultValues():
         """ ATTENTION
         self.faits_intiaux est initialisé par la fonction faits_initialize() qui demande 
         un nom de fichier en paramètre ainsi que l'index de l'exemple que l'on aimerait classifier
-        OU une donnée directement
+        OU une donnée directement. Peut également être modifié par la méthode diagnostic.
         """
         self.faits_initiaux = None    
         self.regles = self.regles_recherche()
@@ -181,7 +181,7 @@ class ResultValues():
 
         return règles_finales
 
-    def classification_regles(self):
+    def classification_regles(self, rep_print = True):
         """
         Permet de classifier l'exemple dont la donnée est stockée dans l'attribut self.faits_initiaux à l'aide
         des règles générées à partir de l'arbre et stockées dans l'attributs self.regles
@@ -205,27 +205,36 @@ class ResultValues():
                 if fait in donnee:
                     faits_partagés += 1
 
-            #Si le nombre de faits partagés est égal au nombre de conditions de la règle (sauf la conclusion, d'où le -1), la règle permet de classifier l'exemple
+            #...si le nombre de faits partagés est égal au nombre de conditions de la règle (sauf la conclusion, d'où le -1), la règle permet de classifier l'exemple
             if faits_partagés == len(regle) - 1 :
-                rep = "La donnée : " + '\n' + str(donnee) + '\n' + " est dans la classe : " + regle[-1] + '\n'
-                regle = regle[:-1]
-                for fait in regle:
-                    rep += " Parce que " + fait + '\n'
-                return rep
+                if rep_print:
+                    rep = "La donnée : " + '\n' + str(donnee) + '\n' + " est dans la classe : " + regle[-1] + '\n'
+                    regle = regle[:-1]
+                    for fait in regle:
+                        rep += " Parce que " + fait + '\n'
+                    return rep
+                else:
+                    return regle[-1]
             
-        #Si aucune règle ne permet de classifier exactement l'exemple, on utilise la méthode classifie de NoeudDeDecision
-        rep = "Pas de classification trouvée grâce aux règles"
-        return rep
+        #Parfois aucune règle ne permet de classifier exactement l'exemple
+        if rep_print:
+            rep = "Pas de classification trouvée grâce aux règles. Néanmoins, selon la méthode classifie, la classe vaut : "
+            classification = self.arbre.classifie(self.faits_initiaux, False)
+            rep += classification
+            return rep
+        else:
+            return classification
             
     def faits_initialize(self, nom_fichier = None, indice_exemple = None, donnee = None):
         """
         Permet d'initialiser self.faits_initiaux avec une donnée directement (dictionnaire attribut:valeur) ou
         en spécifiant un fichier externe contenant des données et l'indice de l'exemple d'intérêt 
         """
-
+        #On initialse l'attribut avec un nom de fichier et l'indice d'un example
         if donnee == None and nom_fichier != None and indice_exemple != None:
             donnees = self.extract_data(nom_fichier)
             self.faits_initiaux = donnees[indice_exemple][1]
+        #On initialise l'attribut avec une donnée directement
         elif nom_fichier == None and indice_exemple == None and donnee != None:
             self.faits_initiaux =  donnee
         else:
@@ -233,22 +242,25 @@ class ResultValues():
         
     def attributs_initialize(self):
         """Parcourt l'arbre dont self.arbre est la racine et initialise les attributs parent, nom et texte 
-           de chaque noeud et l'attribut risques en plus pour les noeuds terminaux, cette étape est utile pour la méthode visual_tree
-           et pour la méthode regle_recherche qui bénéficie de l'attribut texte
+           de chaque noeud et l'attribut risques en plus pour les noeuds terminaux, cette étape est utile pour 
+           la méthode visual_tree et pour la méthode regle_recherche qui utilise l'attribut texte
         """
         if self.arbre.enfants == None:
-            return "Erreur"
+            return "Erreur, le noeud racine spécifié est vide"
 
+        #On commence l'exploration au niveau du noeud Racine
         noeuds_à_explorer = [self.arbre]
         self.arbre.nom = "Racine"
         self.arbre.texte = "Racine"
 
-        #permet de s'assurer de l'unicité de chaque nom stocké dans l'attribut nom de chaque Noeud (important car chaque nom sera utilisé plus tard comme nom de variable)
+        #permet de s'assurer de l'unicité de chaque nom stocké dans l'attribut nom de chaque Noeud (important car chaque nom sera utilisé plus tard comme nom de variable dans visual_tree)
         i = 0
 
+        #Tant qu'on a pas exploré tout l'arbre
         while noeuds_à_explorer:
             noeud_courant = noeuds_à_explorer.pop(-1)
 
+            #Si le noeud a des enfants
             if not(noeud_courant.terminal()):
                 for valeur, enfant in noeud_courant.enfants.items():
                     noeuds_à_explorer.append(enfant)
@@ -256,6 +268,7 @@ class ResultValues():
                     enfant.nom = noeud_courant.attribut + "_" + valeur + "___" + str(i)  
                     enfant.texte = noeud_courant.attribut + " = " + valeur
                     i+=1
+            #Si le noeud est terinal
             elif noeud_courant.terminal(): 
                 if noeud_courant.classe() == "0":
                     noeud_courant.risques = "Risques faibles"
@@ -263,7 +276,80 @@ class ResultValues():
                 elif noeud_courant.classe() == "1":
                     noeud_courant.risques = "Risques élevés"
                 i+=1
-    
+
+    def diagnostic(self, donnee):
+        """ 
+        Méthode permettant de fournir à un patient des pistes de traitement qui pourraient faire passer sa classification
+        de "risques élevés" à "risques faibles".
+
+        La donnée fournie consigne les informations relatives au patient, c'est un dictionnaire de forme {attribut:valeur}
+        """
+        self.faits_initiaux = donnee
+
+        #On teste tout d'abord si le patient est "à risques ou non"
+        classification_patient = self.classification_regles(False)
+
+        if classification_patient == "0":
+            return "Le patient n'est pas à risques"
+        #Si le patient est à risque
+        elif classification_patient == "1":
+            rep = "Le patient est à risques" + '\n'
+            
+            info_patient = []
+
+            #La donnée est transformée sous la forme d'une liste de strings afin de faciliter la comparaison avec les conditions de la règle
+            for attribut, valeur in donnee.items():
+                info_patient.append(str(attribut + " = " + valeur))
+
+            différences = []
+            règles_intéressantes = []
+            différences_correspondantes = []
+
+            #On parcourt les règles
+            for regle in self.regles:
+                #Celles dont la conclusion est optimiste
+                if regle[-1] == "0":
+                    #Évite que la conclusion soit considérée comme une condition
+                    conditions = regle[:-1]
+                    for condition in conditions:
+                        #On considère les différences entre les conditions de la règle et les info du patient 
+                        if condition not in info_patient: 
+                            #On vérifie que la règle ne demande pas au patient de changer de sexe ou d'age
+                            if condition[0:-4] == "age" or condition[0:-4] == "sex":
+                                #Rend la liste des différences trop longue pour que la règle soit condirérée
+                                différences += ["", "", ""]
+                            else:
+                                différences.append(condition)
+                    #Si le nombre de différences entre les info du patient et la règle est petit, la règle est intéressante
+                    if len(différences) <= 2:
+
+                        règles_intéressantes.append(regle)
+                        différences_correspondantes.append(différences)
+                
+                différences = []
+        
+            #Aucun diagnostic trouvé
+            if len(règles_intéressantes) == 0:
+                rep += "Malheureusement, aucune piste de traitement prometeuse n'a été trouvé pour ce patient"
+                return rep
+            #Si au moins une règle intéressante a été trouvée, on propose un diagnostic:
+            else:
+                rep += "Afin de réduire les risques de maladies cardiaques il faut : " + '\n'
+                for i,diff in enumerate(différences_correspondantes):
+                    #On énumère les attributs dont le patient devrait faire changer la valeur pour guérir
+                    for condition in diff:
+                        attribut = condition[0:-4]
+                        valeur_patient = ""
+                        for info in info_patient:
+                            if info[0:-4] == attribut:
+                                valeur_patient = info[-1]
+
+                        rep += "    - Faire passer la valeur de " + attribut + " de " + valeur_patient + " à " + condition[-1] + '\n'
+                    rep += "cela a pu être déduit grâce à la règle : " + str(règles_intéressantes[i]) + '\n'
+                    rep += "OU on peut également : " + '\n'
+                
+                return rep
+            
     def visual_tree(self, noeud_racine = None): 
 
         """
@@ -271,7 +357,8 @@ class ResultValues():
         puis génère une version visuelle de l'arbre grâce à la librairie graphviz
 
         On rassemble les informations nécessaires pour créer les noeuds pour anytree 
-        dans des listes de tuples
+        dans deux listes de tuples, une pour les noeuds non-terminaux de forme: (nom_noeud, texte, nom_parent)
+        et une autre pour les noeuds terminaux de forme: (nom_noeud, risques, nom_parent)
 
         Par défaut le noeud passé en argument est le noeud racine, si ce n'est pas le cas, il suffit de le passer en paramètre
 

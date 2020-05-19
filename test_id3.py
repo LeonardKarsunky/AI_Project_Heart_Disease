@@ -2,8 +2,8 @@ from id3.moteur_id3.noeud_de_decision import NoeudDeDecision
 from id3.moteur_id3.id3 import ID3
 from id3.moteur_id3.id3_continu import ID3_continu
 from project import ResultValues
-import random
 import statistics
+
 
 instance = ResultValues()
 #résultats = instance.get_results()
@@ -22,8 +22,9 @@ instance = ResultValues()
 #print(instance.regles)
 
 """Exemple d'utilisation à partir d'un fichier de données et d'un indice d'exemple"""
-#indice = 35 #ATTENTION l'indice indiqué par la colonne de gauche dans le fichier excel est décalé de 2 par rapport à l'indice ci-contre (ne commence pas à zéro et la ligne 1 est occupée par le nom des attributs)
+#indice = 35 #ATTENTION l'indice indiqué par la colonne de gauche dans le fichier excel est décalé de 2 par rapport à l'indice ci-contre (dans le fichier excel, on ne commence pas à l'indice zéro et la ligne 1 est occupée par le nom des attributs)
 #instance.faits_initialize("data/test_public_bin.csv", indice)
+
 #print(instance.classification_regles())
 
 """Exemple d'utilisation à partir d'une donnée"""
@@ -31,9 +32,16 @@ instance = ResultValues()
 #valeurs = ["2","1","3","1","2","0","1","2","0","1","1","0","3"]
 #dico = dict(zip(attributs, valeurs))
 #instance.faits_initialize(None, None, dico)
+
 #print(instance.classification_regles())
 
 "PARTIE 4 :"
+
+#attributs = ["age","sex","cp","trestbps", "chol", "fbs", "restecg", "thalach", "exang", "oldpeak", "slope", "ca", "thal"]
+#valeurs = ["3","1","1","2","1","1","0","3","0","1","2","0","2"]
+#dico = dict(zip(attributs, valeurs)) #Exemple numéro 2 du fichier test_public_bin, classifié comme "à risques"
+
+#print(instance.diagnostic(dico))
 
 
 "PARTIE 5 :"
@@ -54,16 +62,17 @@ dot output/graphe.dot -T png -o output/graphe.png
 #instance.visual_tree()
 
 """BONUS_2
-La fonction définie ci-dessous permet d'effectuer une cross validation en utilisant en plus des données d'entraînements
-(nom du fichier passé en argument) un certain pourcentage (paramètre) des données de test (nom du fichier passé en argument)
-afin de générer un meilleur modèle. Cette opération est répétée un certain nombre de fois (paramètre) avec la part des données de test choisie pour faire partie des données
-d'entraînement chaque fois différente (selectionnée aléatoirement). La fonction retourne une moyenne du pourcentage 
-de classifications correctes. La méthode peut être utilisée sur ID3 ou ID3_continu.
+La fonction définie ci-dessous permet d'effectuer une cross validation. On merge les données de test et les données
+d'entraînement, on sépare cet ensemble de données en k sous-ensembles. On entraîne ID3 sur k-1 des sous-ensembles
+et on évalue les performances de l'arbre sur le sous-ensemble restant. On répète l'opération jusqu'à ce que chacun
+des k sous-ensembles ait servi d'ensemble test. Le résultat de cette fonction est la moyenne des performances de
+chaque arbre. La méthode peut être utilisée sur ID3 ou ID3_continu (mais de par le manque d'optimisation
+le temps de calcul de la cross-validation pour ID3_continu est assez conséquent)
 
-Appel de la fonction situé en dessous de la définition fonction
+Appel de la fonction situé en dessous de la définition de la fonction
 """
 
-def cross_validation(donnees_entrainement, donnees_test, pourcentage, repetitions, advance):
+def cross_validation(donnees_entrainement, donnees_test, k, advance):
 
     if advance:
         algo_id3 = ID3_continu()
@@ -73,31 +82,52 @@ def cross_validation(donnees_entrainement, donnees_test, pourcentage, repetition
     #Importations des données d'entraînement et de test
     donnees_entr = instance.extract_data(donnees_entrainement)
     donnees_test = instance.extract_data(donnees_test)
-    #Nombre de données provenant des données de test ajoutées aux données d'entraînements
-    nbr_donnees_additionnelles = int(len(donnees_test)*pourcentage)
 
-    pourcentages = []
+    #Merge de ces deux groupes de données
+    donnees = donnees_entr + donnees_test
 
-    for _ in range(repetitions):
+    #Les sous-ensembles sont stockés dans une liste de liste de données
+    ss_ensembles = []
+    ss_ensemble_temp = []
+
+    #Nombre de données par sous-ensemble
+    nbr_donnees = int(len(donnees)/k)
+
+    #Permet de stocker les performances de chaque arbre
+    performances = []
+    #On crée les ss-ensembles (chacun a exactement la même taille, au risque de laisser quelques données inutilisées)
+    for donnee in donnees:
+        ss_ensemble_temp.append(donnee)
+
+        if len(ss_ensemble_temp) == nbr_donnees:
+            ss_ensembles.append(ss_ensemble_temp)
+            ss_ensemble_temp = []
+
+    #on parcourt chaque ss-ensemble jusqu'à ce que chacun...
+    for ss_ensemble in ss_ensembles:
         
-        #Les données à ajouter aux données d'entraînement
-        donnees_sup = random.sample(donnees_test, k = nbr_donnees_additionnelles)
-        donnees = donnees_entr + donnees_sup
-        #Les données restantes servant de données de test
-        donnees_restantes = []
-        for donnee in donnees_test:
-            if donnee not in donnees_sup:
-                donnees_restantes.append(donnee)
-
-        arbre = algo_id3.construit_arbre(donnees)
+        #... ait servi d'ensemble test
+        ensemble_test = ss_ensemble
+        #On initialise l'ensemble d'entraînement avec les données des autres ss-ensembles
+        ensemble_entr = []
+        for ss_ensemble in ss_ensembles:
+            if ss_ensemble != ensemble_test:
+                for donnee in ss_ensemble:
+                    ensemble_entr.append(donnee)
+        
+        arbre = algo_id3.construit_arbre(ensemble_entr)
 
         instance.tree_setter(arbre, advance)
-        pourcentages.append(instance.model_eval(None, advance, donnees_restantes, False))
+
+        performances.append(instance.model_eval(None, advance, ensemble_test, False))
     
-    rep = "Pour une cross-validation utilisant " + str(pourcentage*100) + " pourcents des exemples des données de test afin de créer " 
-    rep += str(repetitions) + " arbres différents, le pourcentage moyen de classifications correctes est : "
-    rep += str(statistics.mean(pourcentages)) + " pourcents."
+    rep = "Pour une " + str(k) + "-fold cross-validation, les performances de l'arbre sont en moyenne de " 
+    rep += str(statistics.mean(performances)) + " pourcents de classifications correctes."
     return rep
 
-#print(cross_validation("data/train_bin.csv", "data/test_public_bin.csv", 0.8, 150, False))
-#print(cross_validation("data/train_continuous.csv", "data/test_public_continuous.csv", 0.8, 30, True))
+
+
+""" Cross-validation """
+#k = 25
+#print(cross_validation("data/train_bin.csv", "data/test_public_bin.csv", k, False))
+#print(cross_validation("data/train_continuous.csv", "data/test_public_continuous.csv", k, True))
