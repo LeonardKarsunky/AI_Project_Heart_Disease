@@ -1,11 +1,6 @@
 import statistics
 
 class NoeudDeDecision:
-    """ Un noeud dans un arbre de décision. 
-    
-        This is an updated version from the one in the book (Intelligence Artificielle par la pratique).
-        Specifically, if we can not classify a data point, we return the predominant class (see lines 53 - 56). 
-    """
 
     def __init__(self, attribut, donnees, p_class, enfants=None):
         """
@@ -16,6 +11,7 @@ class NoeudDeDecision:
             :param enfants: un dictionnaire associant un fils (sous-noeud) à\
             chaque valeur de l'attribut du noeud (``None`` si le\
             noeud est terminal).
+            :param p_class : classe prépondérante dans les données du noeud
         """
 
         self.attribut = attribut
@@ -25,8 +21,8 @@ class NoeudDeDecision:
         #utilisé pour la méthode tree_analysis
         self.depth = 0
         #utilisés pour la méthode visual_tree de Results_values
-        self.nom = None             #contient un string de forme : attributPère_valeur___nombreUnique
-        self.texte = None           #contient un string de forme : attributPère = valeur
+        self.nom = None             #contient un string de forme : "attributPère_valeur___nombreUnique"
+        self.texte = None           #contient un string de forme : "attributPère = valeur"
         self.parent = None          #contient le noeudDeDecision parent
         self.risques = None         #contient un string valant "Risques faibles" si la classe est 0 et "Risques élevés" si la classe est 1
 
@@ -34,12 +30,12 @@ class NoeudDeDecision:
         """ Vérifie si le noeud courant est terminal. """
         if self.enfants == None:
             return True
+
     def classe(self):
         """ Si le noeud est terminal, retourne la classe des données qui\
             tombent dans la sous-classification (dans ce cas, toutes les\
             données font partie de la même classe. 
         """
-
         if self.terminal():
             return self.donnees[0][0]
 

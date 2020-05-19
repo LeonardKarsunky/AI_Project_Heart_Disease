@@ -2,7 +2,10 @@ from id3.moteur_id3.noeud_de_decision import NoeudDeDecision
 from id3.moteur_id3.id3 import ID3
 from id3.moteur_id3.id3_continu import ID3_continu
 from project import ResultValues
+
+#Utile pour cross-validation
 import statistics
+from random import shuffle
 
 
 instance = ResultValues()
@@ -10,7 +13,6 @@ instance = ResultValues()
 
 "PARTIE 1: permet d'obtenir quelques statistiques concernant l'arbre généré"
 
-#print(instance.arbre)
 #print(instance.tree_analysis())
 
 "PARTIE 2 : permet d'obtenir une évaluation des performances de l'arbre"
@@ -21,21 +23,23 @@ instance = ResultValues()
 
 #print(instance.regles)
 
-"""Exemple d'utilisation à partir d'un fichier de données et d'un indice d'exemple"""
-#indice = 35 #ATTENTION l'indice indiqué par la colonne de gauche dans le fichier excel est décalé de 2 par rapport à l'indice ci-contre (dans le fichier excel, on ne commence pas à l'indice zéro et la ligne 1 est occupée par le nom des attributs)
-#instance.faits_initialize("data/test_public_bin.csv", indice)
+"Exemple d'utilisation à partir d'un fichier de données et d'un indice d'exemple"
+
+#indice = 0 #ATTENTION l'indice indiqué par la colonne de gauche dans le fichier excel est décalé de 2 par rapport à l'indice ci-contre (dans le fichier excel, on ne commence pas à l'indice zéro et la ligne 1 est occupée par le nom des attributs)
+#instance.faits_initialize("data/test_public_bin.csv", indice) #Premier exemple du fichier test_public_bin
 
 #print(instance.classification_regles())
 
-"""Exemple d'utilisation à partir d'une donnée"""
+"Exemple d'utilisation à partir d'une donnée "
+
 #attributs = ["age","sex","cp","trestbps", "chol", "fbs", "restecg", "thalach", "exang", "oldpeak", "slope", "ca", "thal"]
 #valeurs = ["2","1","3","1","2","0","1","2","0","1","1","0","3"]
-#dico = dict(zip(attributs, valeurs))
+#dico = dict(zip(attributs, valeurs))   #Premier exemple du fichier test_public_bin
 #instance.faits_initialize(None, None, dico)
 
 #print(instance.classification_regles())
 
-"PARTIE 4 :"
+"PARTIE 4 : Génération d'un diagnostic à partir d'une donnée "
 
 #attributs = ["age","sex","cp","trestbps", "chol", "fbs", "restecg", "thalach", "exang", "oldpeak", "slope", "ca", "thal"]
 #valeurs = ["3","1","1","2","1","1","0","3","0","1","2","0","2"]
@@ -44,7 +48,7 @@ instance = ResultValues()
 #print(instance.diagnostic(dico))
 
 
-"PARTIE 5 :"
+"PARTIE 5 : Génération"
 #print(instance.arbre_advance)
 #print(instance.arbre_advance.tree_analysis())
 
@@ -56,9 +60,11 @@ instance = ResultValues()
 BONUS_1:
 Décommenter la ligne ci-dessous pour générer les représentations graphiques (sauvées dans le dossier output) et 
 compléter par le lancement des deux commandes suivantes dans le terminal depuis le dossier Projet:
+
 dot output/arbre.dot -T png -o output/arbre.png 
 dot output/graphe.dot -T png -o output/graphe.png
 """
+
 #instance.visual_tree()
 
 """BONUS_2
@@ -85,6 +91,7 @@ def cross_validation(donnees_entrainement, donnees_test, k, advance):
 
     #Merge de ces deux groupes de données
     donnees = donnees_entr + donnees_test
+    shuffle(donnees)
 
     #Les sous-ensembles sont stockés dans une liste de liste de données
     ss_ensembles = []
@@ -122,12 +129,10 @@ def cross_validation(donnees_entrainement, donnees_test, k, advance):
         performances.append(instance.model_eval(None, advance, ensemble_test, False))
     
     rep = "Pour une " + str(k) + "-fold cross-validation, les performances de l'arbre sont en moyenne de " 
-    rep += str(statistics.mean(performances)) + " pourcents de classifications correctes."
+    rep += str(round(statistics.mean(performances),3)) + " pourcents de classifications correctes."
     return rep
 
-
-
 """ Cross-validation """
-#k = 25
+#k = 22
 #print(cross_validation("data/train_bin.csv", "data/test_public_bin.csv", k, False))
 #print(cross_validation("data/train_continuous.csv", "data/test_public_continuous.csv", k, True))
