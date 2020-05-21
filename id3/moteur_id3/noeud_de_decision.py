@@ -20,7 +20,7 @@ class NoeudDeDecision:
         self.p_class = p_class
         #utilisé pour la méthode tree_analysis
         self.depth = 0
-        #utilisés pour la méthode visual_tree de Results_values
+        #utilisés pour la méthode visual_tree de Results_values, initialisés par self.attributs_initialize()
         self.nom = None             #contient un string de forme : "attributPère_valeur___nombreUnique"
         self.texte = None           #contient un string de forme : "attributPère = valeur"
         self.parent = None          #contient le noeudDeDecision parent
@@ -46,12 +46,11 @@ class NoeudDeDecision:
             :param donnee: la donnée à classifier.
             :return: la classe de la donnée selon le noeud de décision courant.
         """
-        classe = None
 
         rep = ''
         if self.terminal():
             rep += 'Alors {}'.format(self.classe().upper())
-            classe = self.classe()
+
         else:
             valeur = donnee[self.attribut]
             enfant = self.enfants[valeur]
@@ -64,7 +63,7 @@ class NoeudDeDecision:
         if print == True:
             return rep
         else:
-            return classe
+            return rep[-1]
 
     def tree_analysis(self):
         """Trouve la profondeur maximale atteinte par par l'arbre lorsque la fonction 
@@ -80,7 +79,7 @@ class NoeudDeDecision:
         #Nombe de noeuds terminaux
         nbr_noeuds_terminaux = 0
         #Nombres de noeuds totaux:
-        nbr_noeuds = 1
+        nbr_noeuds_non_term = 1
 
         #Si le noeud racine n'a pas d'enfants, on ne peut pas réaliser d'analyses
         if self.enfants == None:
@@ -99,10 +98,10 @@ class NoeudDeDecision:
         while noeuds_à_explorer:
             noeud_courant = noeuds_à_explorer.pop(-1)
             niveaux.append(noeud_courant.depth)
-            nbr_noeuds += 1
 
             if noeud_courant.enfants != None:
                 nbr_enfants.append(len(noeud_courant.enfants))
+                nbr_noeuds_non_term += 1
 
                 #Si le noeud courant a des enfants, on les rajoute aux noeuds à explorer et on initialise la profondeur de chaque noeud
                 for enfant in noeud_courant.enfants.values():
@@ -115,7 +114,8 @@ class NoeudDeDecision:
         réponse += "La profondeur moyenne de l'arbre est : " + str(statistics.mean(niveaux)) + '\n'
         réponse += "Le nombre moyen d'enfants tout noeud confondu (sauf noeud terminaux) de l'arbre est : " + str(statistics.mean(nbr_enfants)) + '\n'
         réponse += "Le nombre de noeuds terminaux ou feuilles de cet arbre est : " + str(nbr_noeuds_terminaux) + '\n'
-        réponse += "Le nombre de noeuds totaux est : " + str(nbr_noeuds)
+        réponse += "Le nombre de noeuds non terminaux est : " + str(nbr_noeuds_non_term) + '\n'
+        réponse += "Le nombre de noeuds totaux est : " + str(nbr_noeuds_non_term+nbr_noeuds_terminaux)
         return réponse    
 
     def repr_arbre(self, level=0):

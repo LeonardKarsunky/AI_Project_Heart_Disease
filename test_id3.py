@@ -9,15 +9,15 @@ from random import shuffle
 
 
 instance = ResultValues()
-#résultats = instance.get_results()
 
 "PARTIE 1: permet d'obtenir quelques statistiques concernant l'arbre généré"
 
+#print(instance.arbre)
 #print(instance.tree_analysis())
 
 "PARTIE 2 : permet d'obtenir une évaluation des performances de l'arbre"
 
-#print(instance.model_eval("data/test_public_bin.csv"))
+#print(instance.model_eval(False, True, "data/test_public_bin.csv", None ))
 
 "PARTIE 3 : permet de générer un ensemble de règles à partir de l'arbre et de les utiliser pour classifier un exemple"
 
@@ -48,13 +48,15 @@ instance = ResultValues()
 #print(instance.diagnostic(dico))
 
 
-"PARTIE 5 : Génération"
+#print(instance.nbr_patients_aides("data/test_public_bin.csv"))
+
+
+"PARTIE 5 : Généralisation de l'algorithme d'ID3 pour des données continues (valeurs des attributs non discrétisées)"
+
 #print(instance.arbre_advance)
 #print(instance.arbre_advance.tree_analysis())
 
-#print(instance.model_eval("data/test_public_continuous.csv", True))
-
-
+#print(instance.model_eval(True, True, "data/test_public_continuous.csv", None))
 
 """
 BONUS_1:
@@ -126,13 +128,13 @@ def cross_validation(donnees_entrainement, donnees_test, k, advance):
 
         instance.tree_setter(arbre, advance)
 
-        performances.append(instance.model_eval(None, advance, ensemble_test, False))
+        performances.append(instance.model_eval(advance, False, None, ensemble_test))
     
     rep = "Pour une " + str(k) + "-fold cross-validation, les performances de l'arbre sont en moyenne de " 
     rep += str(round(statistics.mean(performances),3)) + " pourcents de classifications correctes."
     return rep
 
 """ Cross-validation """
-#k = 22
-#print(cross_validation("data/train_bin.csv", "data/test_public_bin.csv", k, False))
-#print(cross_validation("data/train_continuous.csv", "data/test_public_continuous.csv", k, True))
+#k = 40
+#print(cross_validation("data/train_bin.csv", "data/test_public_bin.csv", k, False)) #Self.arbre
+#print(cross_validation("data/train_continuous.csv", "data/test_public_continuous.csv", k, True)) #Self.arbre_advance

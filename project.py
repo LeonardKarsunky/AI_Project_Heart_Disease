@@ -36,6 +36,8 @@ class ResultValues():
     def get_results(self):
         return [self.arbre, self.faits_initiaux, self.regles, self.arbre_advance]
     
+
+
 #METHODES AJOUTEES : 
 
     def extract_data(self, data_file):
@@ -74,6 +76,8 @@ class ResultValues():
         
         return donnees
 
+
+
     def tree_analysis(self, arbre = None):
 
         """
@@ -89,7 +93,9 @@ class ResultValues():
         else:
             return arbre.tree_analysis()
     
-    def model_eval(self, nom_fichier = None, advance = False, donnees = None, rep_print = None):
+
+
+    def model_eval(self, advance, rep_print, nom_fichier = None, donnees = None):
 
         """
         Cette méthode permet d'évaluer le pourcentage de classifications correctes d'un arbre déjà construit
@@ -116,22 +122,22 @@ class ResultValues():
         for donnee in donnees:
             #On traite soit self.arbre soit self.arbre_advance selon la valeur du paramètre "advance"
             if advance:
-                classe_model = self.arbre_advance.classifie(donnee[1])
-                classe_model = str(float(classe_model[-1]))
+                classe_model = str(float(self.arbre_advance.classifie(donnee[1], False)))
             else:
-                classe_model = self.arbre.classifie(donnee[1])
-                classe_model = str(float(classe_model[-1]))
+                classe_model = str(float(self.arbre.classifie(donnee[1], False)))
 
             #On incrémente sur le compteur lorsqu'une classification est correcte          
             if classe_model == str(float(donnee[0])):
                 classifications_correctes+=1
         
         pourcentage = 100*(classifications_correctes/len(donnees))
-        if rep_print == None:
+        if rep_print == True:
             rep = "Le modèle classifie correctement " + str(pourcentage) + " pourcents des exemples."
             return rep
         elif rep_print == False:
             return pourcentage
+
+
 
     def regles_recherche(self):
         """
@@ -181,6 +187,8 @@ class ResultValues():
 
         return règles_finales
 
+
+
     def classification_regles(self, rep_print = True):
         """
         Permet de classifier l'exemple dont la donnée est stockée dans l'attribut self.faits_initiaux à l'aide
@@ -225,6 +233,8 @@ class ResultValues():
         else:
             return classification
             
+
+
     def faits_initialize(self, nom_fichier = None, indice_exemple = None, donnee = None):
         """
         Permet d'initialiser self.faits_initiaux avec une donnée directement (dictionnaire attribut:valeur) ou
@@ -234,12 +244,15 @@ class ResultValues():
         if donnee == None and nom_fichier != None and indice_exemple != None:
             donnees = self.extract_data(nom_fichier)
             self.faits_initiaux = donnees[indice_exemple][1]
+            
         #On initialise l'attribut avec une donnée directement
         elif nom_fichier == None and indice_exemple == None and donnee != None:
             self.faits_initiaux =  donnee
         else:
             print("Erreur: vous avez incorrectement utilisé la méthode")         
         
+
+
     def attributs_initialize(self):
         """Parcourt l'arbre dont self.arbre est la racine et initialise les attributs parent, nom et texte 
            de chaque noeud et l'attribut risques en plus pour les noeuds terminaux, cette étape est utile pour 
@@ -277,20 +290,26 @@ class ResultValues():
                     noeud_courant.risques = "Risques élevés"
                 i+=1
 
-    def diagnostic(self, donnee):
+
+
+    def diagnostic(self, donnee, rep_print = True):
         """ 
         Méthode permettant de fournir à un patient des pistes de traitement qui pourraient faire passer sa classification
         de "risques élevés" à "risques faibles".
 
         La donnée fournie consigne les informations relatives au patient, c'est un dictionnaire de forme {attribut:valeur}
+
+        Si rep_print = False, la méthode retourne True si un diagnostic a été trouvé et False sinon
         """
         self.faits_initiaux = donnee
+
+        a_pu_être_aide = None
 
         #On teste tout d'abord si le patient est "à risques ou non"
         classification_patient = self.classification_regles(False)
 
         if classification_patient == "0":
-            return "Le patient n'est pas à risques"
+            rep =  "Le patient n'est pas à risques"
         #Si le patient est à risque
         elif classification_patient == "1":
             rep = "Le patient est à risques" + '\n'
@@ -331,10 +350,11 @@ class ResultValues():
             #Aucun diagnostic trouvé
             if len(règles_intéressantes) == 0:
                 rep += "Malheureusement, aucune piste de traitement prometeuse n'a été trouvé pour ce patient"
-                return rep
+                a_pu_être_aide = False
             #Si au moins une règle intéressante a été trouvée, on propose un diagnostic:
             else:
                 rep += "Afin de réduire les risques de maladies cardiaques il faut : " + '\n'
+                nbr_diagnostics = len(différences_correspondantes)
                 for i,diff in enumerate(différences_correspondantes):
                     #On énumère les attributs dont le patient devrait faire changer la valeur pour guérir
                     for condition in diff:
@@ -346,12 +366,46 @@ class ResultValues():
 
                         rep += "    - Faire passer la valeur de " + attribut + " de " + valeur_patient + " à " + condition[-1] + '\n'
                     rep += "cela a pu être déduit grâce à la règle : " + str(règles_intéressantes[i]) + '\n'
-                    rep += "OU on peut également : " + '\n'
-                
-                return rep
-            
-    def visual_tree(self): 
+                    if i < nbr_diagnostics-1:
+                        rep += "OU on peut également : " + '\n'
+                rep += "Voici les " +  str(nbr_diagnostics) + " solutions à votre disposition."
+                a_pu_être_aide = True
+        
+        if rep_print:
+            return rep
+        else:
+            return a_pu_être_aide
 
+
+    def nbr_patients_aides(self, nom_fichier):
+        """
+        Compte parmi les données d'un fichier de test, combien de patients parmi ceux classifiées comme malades
+        peuvent bénéficier d'un diagnostic
+        """
+        donnees = self.extract_data(nom_fichier)
+
+        #Regroupe les patients malades:
+        donnees_patients_malades = []
+        for donnee in donnees:
+            if donnee[0] == "1":
+                donnees_patients_malades.append(donnee[1])
+        
+        nbr_diagnostics = 0
+        
+        #Cherche un diagnostic pour chaque patient:
+        for donnee in donnees_patients_malades:
+            #Booléen indiquant si oui ou non un diagnostic a été trouvé
+            diagnostic = self.diagnostic(donnee, False)
+
+            if diagnostic == True:
+                nbr_diagnostics += 1
+        
+        rep = "Parmi les " + str(len(donnees)) + " patients, " + str(len(donnees_patients_malades)) 
+        rep += " sont malades. Un diagnostic a été trouvé pour " + str(nbr_diagnostics) + " d'entres eux. "
+        return rep
+
+
+    def visual_tree(self): 
         """
         Traduit l'arbre calculé par ID3 sous une forme compréhensible pour la librairie anytree
         puis génère une version visuelle de l'arbre grâce à la librairie graphviz
@@ -430,6 +484,8 @@ class ResultValues():
         RenderTreeGraph(Racine).to_dotfile("output/graphe.dot")
         UniqueDotExporter(Racine).to_dotfile("output/arbre.dot")
 
+
+
     def tree_setter(self, arbre, advance):
         """
         Setter utile pour la fonction de cross-validation (bonus 2) implémentée dans test_id3.py
@@ -440,6 +496,7 @@ class ResultValues():
             self.arbre_advance = arbre
         else:
             self.arbre = arbre
+    
         
         
         

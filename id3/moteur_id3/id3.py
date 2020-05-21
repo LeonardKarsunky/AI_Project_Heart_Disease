@@ -45,6 +45,17 @@ class ID3:
 
         return arbre
 
+    def classe_unique(self, donnees):
+            """ Vérifie que toutes les données appartiennent à la même classe. """
+            
+            if len(donnees) == 0:
+                return True 
+            premiere_classe = donnees[0][0]
+            for donnee in donnees:
+                if donnee[0] != premiere_classe:
+                    return False 
+            return True
+
     def construit_arbre_recur(self, donnees, attributs, predominant_class):
         """ Construit rédurcivement un arbre de décision à partir 
             des données d'apprentissage et d'un dictionnaire liant
@@ -57,24 +68,13 @@ class ID3:
             :return: une instance de NoeudDeDecision correspondant à la racine de\
             l'arbre de décision.
         """
-        
-        def classe_unique(donnees):
-            """ Vérifie que toutes les données appartiennent à la même classe. """
-            
-            if len(donnees) == 0:
-                return True 
-            premiere_classe = donnees[0][0]
-            for donnee in donnees:
-                if donnee[0] != premiere_classe:
-                    return False 
-            return True
 
         if donnees == []:
             return NoeudDeDecision(None, [str(predominant_class), dict()], str(predominant_class))
 
         # Si toutes les données restantes font partie de la même classe,
         # on peut retourner un noeud terminal.         
-        elif classe_unique(donnees):
+        elif self.classe_unique(donnees):
             return NoeudDeDecision(None, donnees, str(predominant_class))
             
         else:
